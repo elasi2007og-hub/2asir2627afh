@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juega Pedro</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0d0d0d;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            position: absolute;
+            top: 20px;
+            z-index: 10;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-size: 3rem;
+            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+            color: #fff;
+            pointer-events: none;
+            margin: 0;
+        }
+        #score-board {
+            position: absolute;
+            top: 80px;
+            font-size: 24px;
+            z-index: 10;
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
+        }
+        canvas {
+            display: block;
+        }
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            color: #ff0055;
+            display: none;
+            text-align: center;
+            z-index: 20;
+            text-shadow: 0 0 10px #ff0055;
+        }
+        button {
+            margin-top: 20px;
+            padding: 15px 30px;
+            font-size: 20px;
+            background: transparent;
+            color: #0ff;
+            border: 2px solid #0ff;
+            cursor: pointer;
+            border-radius: 5px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px #0ff inset, 0 0 10px #0ff;
+        }
+        button:hover {
+            background: #0ff;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <h1>Juega Pedro</h1>
+    <div id="score-board">Puntuación: <span id="score">0</span></div>
+    <div id="game-over">
+        <div>FIN DEL JUEGO</div>
+        <button onclick="resetGame()">Reintentar</button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const gameOverScreen = document.getElementById('game-over');
+        
+        let width, height;
+        let score = 0;
+        let isGameOver = false;
+        let animationId;
+
+        const player = {
+            x: 0,
+            y: 0,
+            width: 120,
+            height: 20,
+            color: '#0ff'
+        };
+
+        let fallingObjects = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            player.y = height - 60;
+            player.x = width / 2 - player.width / 2;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        window.addEventListener('mousemove', (e) => {
+            player.x = e.clientX - player.width / 2;
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > width) player.x = width - player.width;
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            player.x = e.touches[0].clientX - player.width / 2;
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > width) player.x = width - player.width;
+        });
+
+        function createObject() {
+            const size = Math.random() * 20 + 15;
+            fallingObjects.push({
+                x: Math.random() * (width - size),
+                y: -size,
+                size: size,
+                speed: Math.random() * 3 + 3 + (score * 0.15),
+                color: `hsl(${Math.random() * 360}, 100%, 60%)`
+            });
+        }
+
+        function update() {
+            if (isGameOver) return;
+
+            ctx.fillStyle = 'rgba(13, 13, 13, 0.4)';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.fillStyle = player.color;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.shadowBlur = 0;
+
+            if (Math.random() < 0.04 + (score * 0.001)) {
+                createObject();
+            }
+
+            for (let i = fallingObjects.length - 1; i >= 0; i--) {
+                let obj = fallingObjects[i];
+                obj.y += obj.speed;
+
+                ctx.fillStyle = obj.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = obj.color;
+                ctx.beginPath();
+                ctx.arc(obj.x + obj.size/2, obj.y + obj.size/2, obj.size/2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                if (
+                    obj.y + obj.size > player.y &&
+                    obj.y < player.y + player.height &&
+                    obj.x + obj.size > player.x &&
+                    obj.x < player.x + player.width
+                ) {
+                    score++;
+                    scoreElement.innerText = score;
+                    fallingObjects.splice(i, 1);
+                    continue;
+                }
+
+                if (obj.y > height) {
+                    isGameOver = true;
+                    gameOverScreen.style.display = 'block';
+                }
+            }
+
+            animationId = requestAnimationFrame(update);
+        }
+
+        function resetGame() {
+            isGameOver = false;
+            score = 0;
+            scoreElement.innerText = score;
+            fallingObjects = [];
+            gameOverScreen.style.display = 'none';
+            update();
+        }
+
+        update();
+    </script>
+</body>
+</html>
